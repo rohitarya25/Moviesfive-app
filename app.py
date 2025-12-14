@@ -5,7 +5,7 @@ import numpy as np
 from collections import Counter
 
 # -------------------------------
-# Load data
+# Load data (FAST)
 # -------------------------------
 movies = pickle.load(open("movie_list.pkl", "rb"))
 
@@ -15,41 +15,27 @@ movies = pickle.load(open("movie_list.pkl", "rb"))
 def text_to_vector(text):
     return Counter(text.split())
 
+def cosine_similarity_matrix(matrix):
+    norm = np.linalg.norm(matrix, axis=1)
+    return np.dot(matrix, matrix.T) / (norm[:, None] * norm[None, :])
+
 @st.cache_data(show_spinner="Computing similarity matrix...")
-def compute_similarity(movies_df):
+def compute_similarity_limited(movies_df, max_features=2000):
     vectors = movies_df["tags"].apply(text_to_vector)
 
-    # build vocabulary
-    all_words = list(set(word for vec in vectors for word in vec))
+    # limit vocabulary size (VERY IMPORTANT)
+    word_counts = Counter()
+    for vec in vectors:
+        word_counts.update(vec)
 
-    # convert to numeric matrix
+    most_common_words = [w for w, _ in word_counts.most_common(max_features)]
+
     matrix = np.array([
-        [vec.get(word, 0) for word in all_words]
+        [vec.get(word, 0) for word in most_common_words]
         for vec in vectors
     ])
 
-    # cosine similarity
-    norm = np.linalg.norm(matrix, axis=1)
-    similarity = np.dot(matrix, matrix.T) / (norm[:, None] * norm[None, :])
-
-    return similarity
-
-# compute similarity (cached)
-similarity = compute_similarity(movies)
-
-# -------------------------------
-# Recommendation function
-# -------------------------------
-def recommend(movie):
-    index = movies[movies["title"] == movie].index[0]
-    distances = list(enumerate(similarity[index]))
-    distances = sorted(distances, key=lambda x: x[1], reverse=True)[1:6]
-
-    recommended_movies = []
-    for i in distances:
-        recommended_movies.append(movies.iloc[i[0]].title)
-
-    return recommended_movies
+    return cosine_similarity_matrix(matrix)
 
 # -------------------------------
 # Streamlit UI
@@ -62,12 +48,15 @@ selected_movie = st.selectbox(
 )
 
 if st.button("Recommend"):
-    recommendations = recommend(selected_movie)
+    similarity = compute_similarity_limited(movies)
+
+    index = movies[movies["title"] == selected_movie].index[0]
+    distances = list(enumerate(similarity[index]))
+    distances = sorted(distances, key=lambda x: x[1], reverse=True)[1:6]
 
     st.subheader("Recommended Movies:")
-    for movie in recommendations:
-        st.write("👉", movie)
-
+    for i in distances:
+        st.write("👉", movies.iloc[i[0]].title)
 
 
 # import pickle
@@ -162,6 +151,7 @@ if st.button("Recommend"):
 # @st.cache_data
 # def load_movies():
 #     return pickle.load(open('movie_list.pkl', 'rb'))
+
 
 
 
