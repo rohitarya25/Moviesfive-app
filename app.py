@@ -16,8 +16,32 @@ import pickle
 
 movies = pickle.load(open("movie_list.pkl", "rb"))
 
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import CountVectorizer
+# from sklearn.metrics.pairwise import cosine_similarity
+# from sklearn.feature_extraction.text import CountVectorizer
+import numpy as np
+from collections import Counter
+
+def text_to_vector(text):
+    return Counter(text.split())
+
+def cosine_similarity_matrix(matrix):
+    norm = np.linalg.norm(matrix, axis=1)
+    return np.dot(matrix, matrix.T) / (norm[:, None] * norm[None, :])
+
+# convert movie tags to vectors
+vectors = movies["tags"].apply(text_to_vector)
+
+# build vocabulary
+all_words = list(set(word for vec in vectors for word in vec))
+
+# convert to numeric matrix
+matrix = np.array([
+    [vec.get(word, 0) for word in all_words]
+    for vec in vectors
+])
+
+# compute similarity
+similarity = cosine_similarity_matrix(matrix)
 
 # assuming movies is a DataFrame and has a 'tags' column
 cv = CountVectorizer(max_features=5000, stop_words='english')
@@ -66,6 +90,7 @@ if st.button('Show Recommendation'):
 @st.cache_data
 def load_movies():
     return pickle.load(open('movie_list.pkl', 'rb'))
+
 
 
 
