@@ -16,7 +16,15 @@ import pickle
 
 movies = pickle.load(open("movie_list.pkl", "rb"))
 
-similarity = pickle.load(open(r'C:\Users\Rohit\Desktop\projects\movie_recommender\similarity.pkl','rb'))
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
+
+# assuming movies is a DataFrame and has a 'tags' column
+cv = CountVectorizer(max_features=5000, stop_words='english')
+vectors = cv.fit_transform(movies['tags']).toarray()
+
+similarity = cosine_similarity(vectors)
+
 def recommend(movie):
     index = movies[movies['title'] == movie].index[0]
     distances = sorted(list(enumerate(similarity[index])), reverse=True, key=lambda x: x[1])
@@ -58,5 +66,6 @@ if st.button('Show Recommendation'):
 @st.cache_data
 def load_movies():
     return pickle.load(open('movie_list.pkl', 'rb'))
+
 
 
