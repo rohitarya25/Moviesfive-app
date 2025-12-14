@@ -12,7 +12,10 @@ def fetch_poster(movie_id):
     return full_path
 
 st.header('Movie Recommender System')
-movies = pickle.load(open(r'C:\Users\Rohit\Desktop\projects\movie_recommender\movie_list.pkl','rb'))
+import pickle
+
+movies = pickle.load(open("movie_list.pkl", "rb"))
+
 similarity = pickle.load(open(r'C:\Users\Rohit\Desktop\projects\movie_recommender\similarity.pkl','rb'))
 def recommend(movie):
     index = movies[movies['title'] == movie].index[0]
@@ -55,4 +58,5 @@ if st.button('Show Recommendation'):
 @st.cache_data
 def load_movies():
     return pickle.load(open('movie_list.pkl', 'rb'))
+
 
